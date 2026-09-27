@@ -6,8 +6,10 @@ const BASS_NAME = /bass|basso/i;
 
 /**
  * First guess at roles: a piano track plays with both hands; otherwise the busiest melodic
- * track is the right hand and a bass track (if any) the left hand. Drums and everything else are
- * backing; tracks muted in the file start Off.
+ * track is the right hand and a bass track (if any) the left hand. With exactly two melodic
+ * tracks (unless only one is a piano) the higher one is the right hand and the lower one the left
+ * hand, as in two-staff piano MIDI files. Drums and everything else are backing; tracks muted in
+ * the file start Off.
  */
 export function defaultTrackSettings(tracks: SongTrack[]): TrackSettings[] {
   const settings: TrackSettings[] = tracks.map((t) => ({
@@ -20,9 +22,14 @@ export function defaultTrackSettings(tracks: SongTrack[]): TrackSettings[] {
     if (t) settings[t.index] = { role, splitKey: DEFAULT_SPLIT_KEY, volume: 1 };
   };
 
-  const piano =
-    melodic.find((t) => t.program <= 7 && PIANO_NAME.test(t.name)) ??
-    melodic.find((t) => PIANO_NAME.test(t.name));
+  const pianoNamed = melodic.filter((t) => PIANO_NAME.test(t.name));
+  if (melodic.length === 2 && pianoNamed.length !== 1) {
+    const [low, high] = [...melodic].sort((a, b) => a.minKey + a.maxKey - (b.minKey + b.maxKey));
+    assign(high, 'right');
+    assign(low, 'left');
+    return settings;
+  }
+  const piano = pianoNamed.find((t) => t.program <= 7) ?? pianoNamed[0];
   if (piano) {
     assign(piano, 'both');
     return settings;

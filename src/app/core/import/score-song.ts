@@ -26,6 +26,7 @@ export function scoreToSong(
     title: score.title,
     artist: score.artist,
     score,
+    playsScore: true,
     tracks,
     notes: seq.notes,
     tempos: seq.tempos,

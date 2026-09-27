@@ -40,20 +40,38 @@
   class="grid flex-1 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_22rem]"
   [class.hidden]="!store.song()"
 >
-  <div class="min-w-0 space-y-4">
-    <app-preview-player />
+  <!-- Until the user resizes a panel, the column is sized by the grid row (it has no height of
+       its own), so the video fills what the viewport leaves. -->
+  <div
+    class="flex min-w-0 flex-col gap-4 lg:data-fit:[contain:size]"
+    [attr.data-fit]="layout.userSized() ? null : ''"
+  >
+    <app-preview-player
+      #player
+      class="lg:min-h-64 lg:flex-1"
+      [style.height.px]="layout.videoHeight()"
+      [style.flex]="layout.videoHeight() === null ? null : 'none'"
+    />
+    <app-resize-handle
+      class="-my-3 hidden lg:flex"
+      label="Resize video"
+      [height]="playerHeight"
+      (resized)="layout.videoHeight.set($event)"
+    />
     <app-notation-panel />
   </div>
-  <aside class="space-y-4">
+  <aside class="flex flex-col gap-4">
     <label
       class="block cursor-pointer rounded-xl bg-slate-900 px-4 py-2.5 text-center text-sm font-medium text-slate-200 ring-1 ring-white/10 hover:bg-slate-800"
     >
       Open another file
       <input #another type="file" class="sr-only" (change)="openAnother(another)" />
     </label>
-    <app-track-table />
-    <app-options-panel />
-    <app-export-panel />
+    <div class="flex flex-col gap-2.5">
+      <app-track-table />
+      <app-options-panel />
+      <app-export-panel />
+    </div>
   </aside>
 </main>
 

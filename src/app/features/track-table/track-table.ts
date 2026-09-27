@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Role, keyName } from '../../core/scene/options';
 import { instrumentName } from '../../shared/general-midi';
 import { SongStore } from '../../state/song-store';
@@ -20,6 +20,7 @@ const ROLES: { value: Role; label: string }[] = [
 })
 export class TrackTable {
   protected readonly store = inject(SongStore);
+  protected readonly open = signal(true);
   protected readonly roles = ROLES;
 
   protected readonly rows = computed(() => {

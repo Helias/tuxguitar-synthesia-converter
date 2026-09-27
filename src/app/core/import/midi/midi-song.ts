@@ -2,9 +2,12 @@ import * as alphaTab from '@coderline/alphatab';
 import { NoteEvent, TempoEvent, TimeSignatureEvent } from '../../sequence/note-event';
 import { LoadedSong, PlayedBar, SongTrack, summarizeTracks } from '../../song';
 import { FileFormatError } from '../errors';
+import { midiNotation } from './midi-notation';
 import { Smf, SmfEvent, parseSmf } from './smf';
 
 const PERCUSSION_CHANNEL = 9;
+/** Default names sequencers give the tempo track; not a song title. */
+const GENERIC_TRACK_NAME = /^\s*(control|conductor|tempo|untitled)( track)?\s*$/i;
 
 /** A MIDI track split by channel: each (track, channel) pair with notes becomes one song track. */
 interface LogicalTrack {
@@ -16,7 +19,11 @@ interface LogicalTrack {
   events: SmfEvent[];
 }
 
-export function loadMidiSong(bytes: Uint8Array, fileName: string): LoadedSong {
+export function loadMidiSong(
+  bytes: Uint8Array,
+  fileName: string,
+  settings: alphaTab.Settings,
+): LoadedSong {
   const smf = parseSmf(bytes);
   const logical = splitTracks(smf);
   if (logical.length === 0) {
@@ -53,20 +60,25 @@ export function loadMidiSong(bytes: Uint8Array, fileName: string): LoadedSong {
 
   const firstTrackName = smf.tracks[0]?.events.find((e) => e.type === 'trackName');
   const title =
-    smf.format === 1 && firstTrackName?.type === 'trackName' && firstTrackName.text
+    smf.format === 1 &&
+    firstTrackName?.type === 'trackName' &&
+    firstTrackName.text &&
+    !GENERIC_TRACK_NAME.test(firstTrackName.text)
       ? firstTrackName.text
       : fileName.replace(/\.[^.]+$/, '');
 
+  const bars = computeBars(timeSignatures, markers, endTick);
   return {
     format: { id: 'midi', label: `Standard MIDI (format ${smf.format})` },
     title,
     artist: '',
-    score: null,
+    score: midiNotation(title, tracks, notes, bars, tempos, timeSignatures, settings),
+    playsScore: false,
     tracks,
     notes,
     tempos,
     timeSignatures,
-    bars: computeBars(timeSignatures, markers, endTick),
+    bars,
     chords: [],
     endTick,
     buildMidi: (pianoTracks) => buildMidiFile(logical, tempos, timeSignatures, pianoTracks),

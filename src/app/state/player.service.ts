@@ -1,4 +1,4 @@
-import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
+import { Injectable, effect, inject, signal, untracked } from '@angular/core';
 import type * as AlphaTab from '@coderline/alphatab';
 import { addClick } from '../core/audio/click';
 import { applyPianoMix } from '../core/sequence/piano-mix';
@@ -13,8 +13,8 @@ export type PlayerState = 'idle' | 'loading' | 'ready' | 'error';
 const MAX_DRIFT = 0.06;
 /** Update rate of the coarse `time` signal used by the transport UI (ms). */
 const UI_TIME_INTERVAL = 100;
-/** Quiet time after the last settings change before playback restarts (ms), so drags settle. */
-const RESTART_DELAY = 400;
+/** Quiet time after the last settings change before playback resumes (ms), so drags settle. */
+const RESUME_DELAY = 400;
 
 /**
  * Preview playback. alphaSynth (through AlphaTabApi, bound to the notation element) plays the
@@ -34,7 +34,6 @@ export class PlayerService {
   readonly looping = signal(false);
   /** Video time in seconds, updated ~10×/s for the UI. Use now() for drawing. */
   readonly time = signal(0);
-  readonly hasNotation = computed(() => !!this.store.song()?.score);
 
   private at: AlphaTabModule | null = null;
   private api: AlphaTab.AlphaTabApi | null = null;
@@ -46,8 +45,8 @@ export class PlayerService {
   private lastUiUpdate = 0;
   private audio: AudioContext | null = null;
   private clicks: AudioBufferSourceNode[] = [];
-  private restartTimer: ReturnType<typeof setTimeout> | undefined;
-  private restartPending = false;
+  private resumeTimer: ReturnType<typeof setTimeout> | undefined;
+  private resumePending = false;
 
   constructor() {
     effect(() => {
@@ -55,9 +54,9 @@ export class PlayerService {
       if (this.apiReady() && song !== this.loadedSong) untracked(() => this.loadSong(song));
     });
     effect(() => {
-      const pianoTracks = this.store.pianoTracks();
+      this.store.pianoTracks();
       if (!this.apiReady()) return;
-      untracked(() => this.applyPrograms(pianoTracks));
+      untracked(() => this.applyPrograms());
     });
     effect(() => {
       const volumes = this.store.trackVolumes();
@@ -69,7 +68,8 @@ export class PlayerService {
       if (!this.apiReady()) return;
       untracked(() => this.renderNotation(roles));
     });
-    // Any settings change restarts playback from the beginning; a new song only resets it.
+    // Any settings change pauses playback and resumes it from the same time; a new song only
+    // resets it.
     let settingsSong: LoadedSong | null = null;
     effect(() => {
       const song = this.store.song();
@@ -80,10 +80,10 @@ export class PlayerService {
         settingsSong = song;
         return;
       }
-      untracked(() => this.scheduleRestart());
+      untracked(() => this.scheduleResume());
     });
     effect(() => {
-      if (this.state() === 'ready' && this.restartPending) untracked(() => this.restart());
+      if (this.state() === 'ready' && this.resumePending) untracked(() => this.resume());
     });
     let customSoundFont = false;
     effect(() => {
@@ -115,7 +115,7 @@ export class PlayerService {
       this.api = api;
       api.countInVolume = 0;
       api.metronomeVolume = 0;
-      api.midiLoad.on((midi) => this.patchPrograms(midi, this.store.pianoTracks()));
+      api.midiLoad.on((midi) => this.onMidiLoad(midi));
       api.playerPositionChanged.on((e) => this.onPosition(e));
       api.playerFinished.on(() => this.onFinished());
       api.error.on(() => this.state.set('error'));
@@ -125,6 +125,8 @@ export class PlayerService {
       // api.midiLoaded overflows the stack when subscribed to (alphaTab 1.8.4); the synth's own
       // event reports the same moment.
       api.player?.readyForPlayback.on(updateReady);
+      // alphaTab resets channel volumes to the file's on every MIDI load; this runs after it.
+      api.player?.readyForPlayback.on(() => this.applyVolumes(this.store.trackVolumes()));
       this.apiReady.set(true);
     } catch {
       this.state.set('error');
@@ -162,6 +164,11 @@ export class PlayerService {
     this.time.set(this.anchorTime);
   }
 
+  /** Renders the notation again, e.g. after its element became visible. */
+  redrawNotation(): void {
+    if (this.api?.score) this.api.render();
+  }
+
   toggle(): void {
     if (this.playing()) this.pause();
     else void this.play();
@@ -187,19 +194,18 @@ export class PlayerService {
     }
   }
 
-  private scheduleRestart(): void {
-    clearTimeout(this.restartTimer);
-    this.restartTimer = setTimeout(() => {
-      this.restartPending = true;
-      if (this.state() === 'ready') this.restart();
-    }, RESTART_DELAY);
+  private scheduleResume(): void {
+    if (this.playing()) this.pause();
+    clearTimeout(this.resumeTimer);
+    this.resumeTimer = setTimeout(() => {
+      this.resumePending = true;
+      if (this.state() === 'ready') this.resume();
+    }, RESUME_DELAY);
   }
 
-  private restart(): void {
-    this.restartPending = false;
-    if (this.playing()) this.pause();
-    this.seek(0);
-    void this.play();
+  private resume(): void {
+    this.resumePending = false;
+    if (!this.playing()) void this.play();
   }
 
   private loop(): void {
@@ -261,27 +267,22 @@ export class PlayerService {
   }
 
   private loadSong(song: LoadedSong | null): void {
-    clearTimeout(this.restartTimer);
-    this.restartPending = false;
+    clearTimeout(this.resumeTimer);
+    this.resumePending = false;
     if (this.playing()) this.pause();
     this.loadedSong = song;
     this.renderedTracks = '';
     this.anchorTime = 0;
     this.time.set(0);
     if (!song || !this.api) return;
-    if (song.score) {
-      this.renderNotation(this.store.tracks().map((t) => t.role));
-    } else {
-      this.api.player?.loadMidiFile(song.buildMidi(this.store.pianoTracks()));
-      this.applyVolumes(this.store.trackVolumes());
-    }
+    this.renderNotation(this.store.tracks().map((t) => t.role));
   }
 
   private renderedTracks = '';
 
   private renderNotation(roles: Role[]): void {
     const song = this.loadedSong;
-    if (!song?.score || !this.api) return;
+    if (!song || !this.api) return;
     const hands = roles.map((r, i) => (isHand(r) ? i : -1)).filter((i) => i >= 0);
     const indexes = hands.length ? hands : [0];
     const key = `${song.title}|${indexes.join(',')}`;
@@ -290,16 +291,11 @@ export class PlayerService {
     this.api.renderScore(song.score, indexes);
   }
 
-  private applyPrograms(pianoTracks: ReadonlySet<number>): void {
+  private applyPrograms(): void {
     const song = this.loadedSong;
     if (!song || !this.api) return;
     const position = this.api.timePosition;
-    if (song.score) {
-      this.api.loadMidiForScore();
-    } else {
-      this.api.player?.loadMidiFile(song.buildMidi(pianoTracks));
-      this.applyVolumes(this.store.trackVolumes());
-    }
+    this.api.loadMidiForScore();
     this.api.timePosition = position;
   }
 
@@ -312,7 +308,24 @@ export class PlayerService {
     });
   }
 
-  /** alphaTab regenerates the MIDI for the score on load; hand tracks switch to piano here. */
+  /**
+   * alphaTab regenerates the MIDI from the score on load. Hand tracks switch to piano here; for a
+   * notation-only score the file's contents are replaced by the song's own MIDI.
+   */
+  private onMidiLoad(midi: AlphaTab.midi.MidiFile): void {
+    const song = this.loadedSong;
+    if (!song) return;
+    const pianoTracks = this.store.pianoTracks();
+    if (song.playsScore) {
+      this.patchPrograms(midi, pianoTracks);
+      return;
+    }
+    const own = song.buildMidi(pianoTracks);
+    midi.format = own.format;
+    midi.division = own.division;
+    midi.tracks.splice(0, midi.tracks.length, ...own.tracks);
+  }
+
   private patchPrograms(midi: AlphaTab.midi.MidiFile, pianoTracks: ReadonlySet<number>): void {
     const song = this.loadedSong;
     if (!song || !this.at) return;

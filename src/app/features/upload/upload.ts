@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { SongStore } from '../../state/song-store';
 
+const EXAMPLE = { url: 'examples/Fur-Elise.mid', name: 'Fur-Elise.mid' };
+
 const ACCEPT = '.tg,.gp,.gp3,.gp4,.gp5,.gpx,.musicxml,.mxl,.xml,.capx,.tex,.alphatex,.mid,.midi';
 
 @Component({
@@ -24,6 +26,19 @@ export class Upload {
   protected onDragOver(event: DragEvent): void {
     event.preventDefault();
     this.dragging.set(true);
+  }
+
+  protected async openExample(): Promise<void> {
+    let blob: Blob;
+    try {
+      const response = await fetch(new URL(EXAMPLE.url, document.baseURI));
+      if (!response.ok) throw new Error(response.statusText);
+      blob = await response.blob();
+    } catch {
+      this.store.error.set('The example could not be downloaded.');
+      return;
+    }
+    await this.store.open(new File([blob], EXAMPLE.name));
   }
 
   protected onPick(input: HTMLInputElement): void {

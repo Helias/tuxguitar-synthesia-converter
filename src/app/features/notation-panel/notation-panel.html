@@ -1,4 +1,4 @@
-<section class="rounded-xl bg-slate-900 ring-1 ring-white/5">
+<section class="flex min-h-0 flex-col rounded-xl bg-slate-900 ring-1 ring-white/5">
   <button
     type="button"
     class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold tracking-wide text-slate-300 uppercase"
@@ -6,7 +6,7 @@
     aria-controls="notation-body"
     (click)="open.set(!open())"
   >
-    Score
+    Pentagram
     <svg
       viewBox="0 0 20 20"
       class="h-4 w-4 transition-transform"
@@ -22,16 +22,20 @@
   <div
     id="notation-body"
     #scroller
-    class="overflow-auto rounded-b-xl bg-white transition-[max-height]"
-    [class.max-h-[55vh]]="open()"
+    class="min-h-0 overflow-auto bg-white transition-[max-height]"
+    [class.rounded-b-xl]="!open()"
+    [class.max-h-[55vh]]="open() && layout.notationHeight() === null"
     [class.max-h-0]="!open()"
+    [style.height.px]="open() ? layout.notationHeight() : null"
     [attr.aria-hidden]="!open()"
   >
-    @if (!player.hasNotation()) {
-      <p class="px-4 py-6 text-center text-sm text-slate-600">
-        MIDI files have no notation to show.
-      </p>
-    }
-    <div #alphaTab [class.hidden]="!player.hasNotation()" class="text-slate-900"></div>
+    <div #alphaTab class="text-slate-900"></div>
   </div>
+  @if (open()) {
+    <app-resize-handle
+      label="Resize pentagram"
+      [height]="bodyHeight"
+      (resized)="layout.notationHeight.set($event)"
+    />
+  }
 </section>

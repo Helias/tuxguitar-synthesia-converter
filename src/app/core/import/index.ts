@@ -36,10 +36,10 @@ export function importFile(bytes: Uint8Array, fileName: string): LoadedSong {
   if (bytes.length === 0) {
     throw new UnsupportedFormatError('The file is empty.');
   }
-  if (isSmf(bytes)) {
-    return loadMidiSong(bytes, fileName);
-  }
   const settings = createSettings();
+  if (isSmf(bytes)) {
+    return loadMidiSong(bytes, fileName, settings);
+  }
   const tgFormat = detectTuxGuitar(bytes);
   if (tgFormat) {
     const song = readTuxGuitar(bytes, tgFormat);

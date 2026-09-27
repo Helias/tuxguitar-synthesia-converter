@@ -8,9 +8,9 @@ video. Parsing, synthesis, drawing and encoding all run in the browser; nothing 
    on the keyboard), **Backing** (heard, not drawn) or **Off**, and set its volume.
 3. Tune the video: fall speed, note names (Italian `Do Re Mi` or English), hand colours, lead-in,
    count-in, full keyboard, resolution, soundfont.
-4. Preview it with sound; the score (with a playback cursor) is in the collapsible panel below.
-5. Export an MP4 (H.264 + AAC; WebM with VP9 + Opus where MP4 encoding is unavailable) and the
-   MIDI file.
+4. Preview it with sound; the pentagram (staff notation with a playback cursor) is in the
+   collapsible panel below.
+5. Export the video as MP4 (default) or WebM, and the MIDI file.
 
 Roles, split keys and volumes are remembered per file (keyed by the file's SHA-256), video options
 globally, in `localStorage`.
@@ -28,7 +28,9 @@ globally, in `localStorage`.
 
 Formats are detected from the file contents, not the extension. A TuxGuitar 2.x file is a ZIP like
 Guitar Pro 7 and `.mxl`, so ZIPs are checked for `version.txt` + `content.xml` first. PowerTab is
-not supported. MIDI files have no notation panel.
+not supported. For MIDI files the pentagram is built like TuxGuitar's MIDI import: times snapped
+to sixteenths, a new beat at every note start or end, held notes tied across. Playback still uses
+the original MIDI.
 
 ### Differences from TuxGuitar's own playback
 
@@ -46,10 +48,11 @@ bars), the repeats are written out in TuxGuitar's play order.
 
 ## Browser support
 
-Export needs [WebCodecs](https://developer.mozilla.org/docs/Web/API/WebCodecs_API): recent Chrome,
-Edge and other Chromium browsers produce MP4. Other browsers produce WebM if they can encode
-VP9/VP8 + Opus, otherwise the export panel says export is unavailable (preview and MIDI download
-still work). A 2.5-minute song at 1080p30 is ~4,500 frames; expect one to three minutes. The 720p
+Export needs [WebCodecs](https://developer.mozilla.org/docs/Web/API/WebCodecs_API). Each format
+uses the first codecs the browser can encode: MP4 takes H.264 (else H.265, AV1, VP9) with AAC, or
+Opus where AAC is unavailable (Chrome on Linux); WebM takes VP9 (else AV1, VP8) with Opus (else
+Vorbis). The format menu marks formats the browser can't encode; with neither, the export panel
+says export is unavailable (preview and MIDI download still work). A 2.5-minute song at 1080p30 is ~4,500 frames; expect one to three minutes. The 720p
 preset is faster.
 
 ## Development
@@ -72,7 +75,7 @@ root: alphaTab loads its worker relative to the bundled chunk.
 ### Layout
 
 ```
-src/app/core/import/    format detection; TuxGuitar readers → TgSong → alphaTab Score; MIDI parser
+src/app/core/import/    format detection; TuxGuitar readers → TgSong → alphaTab Score; MIDI parser + notation
 src/app/core/sequence/  Score → note events + playable MIDI (one MidiFileGenerator run); tempo map
 src/app/core/scene/     note events + roles + options → Scene (seconds, hands, bars, chords, count-in)
 src/app/core/render/    drawFrame(ctx, t, scene), shared by preview and export

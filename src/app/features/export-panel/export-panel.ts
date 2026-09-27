@@ -5,6 +5,7 @@ import {
   computed,
   effect,
   inject,
+  signal,
   untracked,
 } from '@angular/core';
 import { PRESETS } from '../../core/scene/options';
@@ -21,7 +22,18 @@ import { SongStore } from '../../state/song-store';
 export class ExportPanel {
   protected readonly store = inject(SongStore);
   protected readonly exporter = inject(ExportService);
+  protected readonly open = signal(true);
   private readonly player = inject(PlayerService);
+
+  protected readonly formats = [
+    { id: 'mp4', label: 'MP4' },
+    { id: 'webm', label: 'WebM' },
+  ] as const;
+  protected readonly codecs = this.exporter.codecs;
+  protected readonly noEncoder = computed(() => {
+    const codecs = this.codecs();
+    return !!codecs && !codecs.mp4 && !codecs.webm;
+  });
 
   protected readonly busy = computed(() => ['audio', 'video'].includes(this.exporter.phase()));
   protected readonly summary = computed(() => {

@@ -1,17 +1,51 @@
 <section class="rounded-xl bg-slate-900 ring-1 ring-white/5">
-  <h2
-    class="border-b border-white/5 px-4 py-3 text-sm font-semibold tracking-wide text-slate-300 uppercase"
+  <button
+    type="button"
+    class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold tracking-wide text-slate-300 uppercase"
+    [attr.aria-expanded]="open()"
+    aria-controls="export-body"
+    (click)="open.set(!open())"
   >
     Export
-  </h2>
-  <div class="space-y-3 px-4 py-4 text-sm">
-    <p class="text-slate-400">
-      {{ summary() }}
-      @if (exporter.container(); as container) {
-        · {{ container }}
-      }
-    </p>
-    @if (exporter.container() === null) {
+    <svg
+      viewBox="0 0 20 20"
+      class="h-4 w-4 transition-transform"
+      [class.rotate-180]="open()"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        d="M5.2 7.2a1 1 0 0 1 1.4 0L10 10.6l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 8.6a1 1 0 0 1 0-1.4Z"
+      />
+    </svg>
+  </button>
+  <div
+    id="export-body"
+    class="space-y-3 border-t border-white/5 px-4 py-4 text-sm"
+    [class.hidden]="!open()"
+  >
+    <p class="text-slate-400">{{ summary() }}</p>
+    <label class="flex items-center gap-3">
+      <span class="text-slate-400">Format</span>
+      <select
+        class="min-w-0 flex-1 rounded-md bg-slate-800 px-2 py-1.5 text-slate-100 ring-1 ring-white/10"
+        [value]="exporter.format()"
+        [disabled]="busy()"
+        (change)="exporter.format.set($any($event.target).value)"
+      >
+        @for (f of formats; track f.id) {
+          <option [value]="f.id" [disabled]="codecs()?.[f.id] === null">
+            {{ f.label }}
+            @if (codecs()?.[f.id]; as c) {
+              ({{ c }})
+            } @else if (codecs()?.[f.id] === null) {
+              (not supported)
+            }
+          </option>
+        }
+      </select>
+    </label>
+    @if (noEncoder()) {
       <p class="rounded-lg bg-amber-500/10 px-3 py-2 text-amber-200">
         This browser cannot encode video. Use a recent Chrome or Edge; you can still download the
         MIDI.
@@ -50,7 +84,7 @@
       <button
         type="button"
         class="w-full rounded-lg bg-sky-500 px-4 py-2 font-medium text-white shadow hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-        [disabled]="exporter.container() === null || !store.scene()?.notes?.length"
+        [disabled]="!codecs()?.[exporter.format()] || !store.scene()?.notes?.length"
         (click)="start()"
       >
         Export video
@@ -68,9 +102,6 @@
       >
         Download {{ result.fileName }} ({{ result.size / 1048576 | number: '1.0-1' }} MB)
       </a>
-      @if (result.notice) {
-        <p class="text-xs text-amber-200">{{ result.notice }}</p>
-      }
     }
     @if (exporter.error(); as error) {
       <p class="rounded-lg bg-red-500/10 px-3 py-2 text-red-300" role="alert">{{ error }}</p>

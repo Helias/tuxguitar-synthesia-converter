@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import type { VideoFormat } from '../core/export/export-video';
 import { PRESETS, VideoPreset } from '../core/scene/options';
 import { SongStore } from './song-store';
 
@@ -8,7 +9,6 @@ export interface ExportResult {
   url: string;
   fileName: string;
   size: number;
-  notice: string | null;
 }
 
 /** Share of the progress bar taken by audio synthesis; video encoding takes the rest. */
@@ -23,20 +23,32 @@ export class ExportService {
   readonly progress = signal(0);
   readonly error = signal<string | null>(null);
   readonly result = signal<ExportResult | null>(null);
-  /** "MP4 (H.264/AAC)", "WebM (VP9/Opus)" or null when no encoder is available. */
-  readonly container = signal<string | null | undefined>(undefined);
+  readonly format = signal<VideoFormat>('mp4');
+  /**
+   * Codecs per format, e.g. "H.264 + AAC"; null when the browser can't encode that format,
+   * undefined until probed.
+   */
+  readonly codecs = signal<Record<VideoFormat, string | null> | undefined>(undefined);
 
   private abort: AbortController | null = null;
   private defaultSoundFont: Promise<Uint8Array> | null = null;
 
   async probe(preset: VideoPreset): Promise<void> {
-    const { probeCodecs } = await import('../core/export/export-video');
+    const { describeCodecs, probeCodecs } = await import('../core/export/export-video');
     const { width, height } = PRESETS[preset];
-    try {
-      const codecs = await probeCodecs(width, height, SAMPLE_RATE);
-      this.container.set(codecs.container === 'mp4' ? 'MP4 (H.264 + AAC)' : 'WebM (VP9 + Opus)');
-    } catch {
-      this.container.set(null);
+    const probe = async (format: VideoFormat) => {
+      try {
+        const codecs = await probeCodecs(format, width, height, SAMPLE_RATE);
+        return codecs && describeCodecs(codecs);
+      } catch {
+        return null;
+      }
+    };
+    const [mp4, webm] = await Promise.all([probe('mp4'), probe('webm')]);
+    this.codecs.set({ mp4, webm });
+    if (!(this.format() === 'mp4' ? mp4 : webm)) {
+      if (mp4) this.format.set('mp4');
+      else if (webm) this.format.set('webm');
     }
   }
 
@@ -78,6 +90,7 @@ export class ExportService {
       this.phase.set('video');
       const preset = PRESETS[this.store.options().preset];
       const video = await exportVideo({
+        format: this.format(),
         scene,
         audio,
         ...preset,
@@ -88,7 +101,6 @@ export class ExportService {
         url: URL.createObjectURL(video.blob),
         fileName: `${fileBase(song.title, this.store.fileName())}-piano-tutorial.${video.extension}`,
         size: video.blob.size,
-        notice: video.notice,
       });
       this.phase.set('done');
     } catch (e) {

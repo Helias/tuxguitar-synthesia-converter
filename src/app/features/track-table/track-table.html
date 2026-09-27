@@ -1,10 +1,29 @@
 <section class="rounded-xl bg-slate-900 ring-1 ring-white/5">
-  <h2
-    class="border-b border-white/5 px-4 py-3 text-sm font-semibold tracking-wide text-slate-300 uppercase"
+  <button
+    type="button"
+    class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold tracking-wide text-slate-300 uppercase"
+    [attr.aria-expanded]="open()"
+    aria-controls="tracks-body"
+    (click)="open.set(!open())"
   >
     Tracks
-  </h2>
-  <ul class="divide-y divide-white/5">
+    <svg
+      viewBox="0 0 20 20"
+      class="h-4 w-4 transition-transform"
+      [class.rotate-180]="open()"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        d="M5.2 7.2a1 1 0 0 1 1.4 0L10 10.6l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 8.6a1 1 0 0 1 0-1.4Z"
+      />
+    </svg>
+  </button>
+  <ul
+    id="tracks-body"
+    class="divide-y divide-white/5 border-t border-white/5"
+    [class.hidden]="!open()"
+  >
     @for (row of rows(); track row.track.index) {
       <li class="space-y-2 px-4 py-3">
         <div class="flex items-baseline justify-between gap-3">

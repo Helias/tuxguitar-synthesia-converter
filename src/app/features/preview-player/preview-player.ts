@@ -19,12 +19,11 @@ import { SongStore } from '../../state/song-store';
   selector: 'app-preview-player',
   templateUrl: './preview-player.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { class: 'block', '(document:keydown.space)': 'onSpace($event)' },
+  host: { class: 'flex flex-col', '(document:keydown.space)': 'onSpace($event)' },
 })
 export class PreviewPlayer {
   protected readonly store = inject(SongStore);
   protected readonly player = inject(PlayerService);
-  protected readonly open = signal(true);
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private readonly frame = viewChild.required<ElementRef<HTMLElement>>('frame');
   private readonly size = signal({ width: 0, height: 0 });

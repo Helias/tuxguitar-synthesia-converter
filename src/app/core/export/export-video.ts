@@ -15,14 +15,15 @@ import { RenderedAudio, abortError } from '../audio/render-audio';
 import { Ctx2D, drawFrame } from '../render/draw-frame';
 import { Scene } from '../scene/scene';
 
+export type VideoFormat = 'mp4' | 'webm';
+
 export interface ExportedVideo {
   blob: Blob;
-  extension: 'mp4' | 'webm';
-  /** Set when the browser could not encode H.264/AAC and WebM was used instead. */
-  notice: string | null;
+  extension: VideoFormat;
 }
 
 export interface ExportVideoOptions {
+  format: VideoFormat;
   scene: Scene;
   audio: RenderedAudio;
   width: number;
@@ -36,33 +37,56 @@ export class UnsupportedCodecError extends Error {
   override readonly name = 'UnsupportedCodecError';
 }
 
-interface Codecs {
+export interface Codecs {
   video: VideoCodec;
   audio: AudioCodec;
-  container: 'mp4' | 'webm';
 }
 
-/** H.264 + AAC in MP4 when the browser can encode it, else VP9/VP8 + Opus in WebM. */
+/**
+ * Codecs tried per container, most compatible first. MP4 falls back to Opus audio because
+ * Chrome on Linux encodes H.264 but not AAC.
+ */
+const CANDIDATES: Record<VideoFormat, { video: VideoCodec[]; audio: AudioCodec[] }> = {
+  mp4: { video: ['avc', 'hevc', 'av1', 'vp9'], audio: ['aac', 'opus'] },
+  webm: { video: ['vp9', 'av1', 'vp8'], audio: ['opus', 'vorbis'] },
+};
+
+const CODEC_NAMES: Record<string, string> = {
+  avc: 'H.264',
+  hevc: 'H.265',
+  av1: 'AV1',
+  vp9: 'VP9',
+  vp8: 'VP8',
+  aac: 'AAC',
+  opus: 'Opus',
+  vorbis: 'Vorbis',
+};
+
+/** "H.264 + Opus" */
+export function describeCodecs(codecs: Codecs): string {
+  return `${CODEC_NAMES[codecs.video]} + ${CODEC_NAMES[codecs.audio]}`;
+}
+
+/** The first codecs this browser can encode in `format`, or null. */
 export async function probeCodecs(
+  format: VideoFormat,
   width: number,
   height: number,
   sampleRate: number,
-): Promise<Codecs> {
-  const videoOptions = { width, height, quality: QUALITY_HIGH };
-  const audioOptions = { numberOfChannels: 2, sampleRate, quality: QUALITY_HIGH };
-  const [avc, aac] = await Promise.all([
-    getFirstEncodableVideoCodec(['avc'], videoOptions),
-    getFirstEncodableAudioCodec(['aac'], audioOptions),
+): Promise<Codecs | null> {
+  const [video, audio] = await Promise.all([
+    getFirstEncodableVideoCodec(CANDIDATES[format].video, {
+      width,
+      height,
+      quality: QUALITY_HIGH,
+    }),
+    getFirstEncodableAudioCodec(CANDIDATES[format].audio, {
+      numberOfChannels: 2,
+      sampleRate,
+      quality: QUALITY_HIGH,
+    }),
   ]);
-  if (avc && aac) return { video: avc, audio: aac, container: 'mp4' };
-  const [vp, opus] = await Promise.all([
-    getFirstEncodableVideoCodec(['vp9', 'vp8'], videoOptions),
-    getFirstEncodableAudioCodec(['opus'], audioOptions),
-  ]);
-  if (vp && opus) return { video: vp, audio: opus, container: 'webm' };
-  throw new UnsupportedCodecError(
-    'This browser cannot encode video (WebCodecs H.264/AAC or VP9/Opus). Use a recent Chrome or Edge.',
-  );
+  return video && audio ? { video, audio } : null;
 }
 
 /** Frames needed to cover `duration` seconds. */
@@ -76,8 +100,11 @@ export function frameCount(duration: number, fps: number): number {
  * hold one track back.
  */
 export async function exportVideo(options: ExportVideoOptions): Promise<ExportedVideo> {
-  const { scene, audio, width, height, fps } = options;
-  const codecs = await probeCodecs(width, height, audio.sampleRate);
+  const { format, scene, audio, width, height, fps } = options;
+  const codecs = await probeCodecs(format, width, height, audio.sampleRate);
+  if (!codecs) {
+    throw new UnsupportedCodecError(`This browser cannot encode ${format.toUpperCase()} video.`);
+  }
   await loadFonts();
 
   const canvas = createCanvas(width, height);
@@ -86,9 +113,7 @@ export async function exportVideo(options: ExportVideoOptions): Promise<Exported
 
   const output = new Output({
     format:
-      codecs.container === 'mp4'
-        ? new Mp4OutputFormat({ fastStart: 'in-memory' })
-        : new WebMOutputFormat(),
+      format === 'mp4' ? new Mp4OutputFormat({ fastStart: 'in-memory' }) : new WebMOutputFormat(),
     target: new BufferTarget(),
   });
   const video = new CanvasSource(canvas, {
@@ -131,14 +156,7 @@ export async function exportVideo(options: ExportVideoOptions): Promise<Exported
   options.onProgress?.(1);
 
   const buffer = output.target.buffer!;
-  return {
-    blob: new Blob([buffer], { type: codecs.container === 'mp4' ? 'video/mp4' : 'video/webm' }),
-    extension: codecs.container,
-    notice:
-      codecs.container === 'webm'
-        ? 'This browser cannot encode MP4 (H.264/AAC), so the video was saved as WebM (VP9/Opus).'
-        : null,
-  };
+  return { blob: new Blob([buffer], { type: `video/${format}` }), extension: format };
 }
 
 async function addAudio(source: AudioSampleSource, sample: AudioSample): Promise<void> {

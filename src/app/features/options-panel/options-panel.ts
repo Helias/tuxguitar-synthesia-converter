@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { NoteNaming, VideoPreset } from '../../core/scene/options';
 import { SongStore } from '../../state/song-store';
 
@@ -9,6 +9,7 @@ import { SongStore } from '../../state/song-store';
 })
 export class OptionsPanel {
   protected readonly store = inject(SongStore);
+  protected readonly open = signal(false);
 
   protected setNumber(key: 'fallSpeed' | 'leadIn', value: string): void {
     this.store.updateOptions({ [key]: Number(value) });

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { TG_TICK_OFFSET, fixture, golden, hasFixture } from '../testing/fixtures';
 import { FileFormatError, UnsupportedFormatError, importFile } from './index';
@@ -55,12 +56,16 @@ describe('importFile', () => {
   it.skipIf(!hasFixture('features.mid'))('reads Standard MIDI files', () => {
     const song = importFile(fixture('features.mid'), 'features.mid');
     expect(song.format.id).toBe('midi');
-    expect(song.score).toBeNull();
     expect(song.tracks.map((t) => t.isPercussion)).toEqual([false, false, true]);
     expect(noteOns(song)).toEqual(goldenNoteOns('features'));
     expect(song.tempos.some((t) => Math.round(t.bpm) === 120)).toBe(true);
     const midi = song.buildMidi(new Set([0]));
     expect(midi.toBinary().length).toBeGreaterThan(100);
+  });
+
+  it('titles MIDI files after the file name when the tempo track has a default name', () => {
+    const bytes = new Uint8Array(readFileSync('public/examples/Fur-Elise.mid'));
+    expect(importFile(bytes, 'Fur-Elise.mid').title).toBe('Fur-Elise');
   });
 
   it('rejects empty and unknown files', () => {

@@ -52,7 +52,7 @@ const {
 } = alphaTab.model;
 
 /** GP5 drum keys that have no articulation of their own in alphaTab (Gp3To5Importer). */
-const PERCUSSION_ARTICULATION_REMAP = new Map([
+export const PERCUSSION_ARTICULATION_REMAP = new Map([
   [27, 42],
   [28, 60],
   [29, 29],

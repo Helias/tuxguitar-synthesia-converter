@@ -1,40 +1,17 @@
-<section class="rounded-xl bg-slate-900 ring-1 ring-white/5">
-  <button
-    type="button"
-    class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold tracking-wide text-slate-300 uppercase"
-    [attr.aria-expanded]="open()"
-    aria-controls="video-body"
-    (click)="open.set(!open())"
-  >
-    Video
-    <svg
-      viewBox="0 0 20 20"
-      class="h-4 w-4 transition-transform"
-      [class.rotate-180]="open()"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path
-        d="M5.2 7.2a1 1 0 0 1 1.4 0L10 10.6l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 8.6a1 1 0 0 1 0-1.4Z"
-      />
-    </svg>
-  </button>
-  <div
-    id="video-body"
-    class="overflow-hidden rounded-b-xl bg-black"
-    [class.hidden]="!open()"
-    [attr.aria-hidden]="!open()"
-  >
+<section class="flex flex-1 flex-col overflow-hidden rounded-xl bg-black ring-1 ring-white/5">
+  <!-- On wide screens the video fills the height left in the viewport, letterboxed at 16:9. -->
+  <div class="lg:flex lg:min-h-0 lg:flex-1 lg:items-center lg:[container-type:size]">
     <div
       #frame
-      class="relative aspect-video w-full select-none"
+      class="relative mx-auto aspect-video w-full select-none lg:w-[min(100cqw,100cqh*16/9)]"
       (pointermove)="drag($event)"
       (pointerup)="endDrag()"
     >
       <canvas
         #canvas
-        class="absolute inset-0 h-full w-full"
+        class="absolute inset-0 h-full w-full cursor-pointer"
         aria-label="Falling-notes preview"
+        (click)="player.toggle()"
       ></canvas>
       @for (m of markers(); track m.index) {
         <div
@@ -57,56 +34,56 @@
         </div>
       }
     </div>
-
-    <div class="flex items-center gap-3 bg-slate-900 px-3 py-2">
-      <button
-        type="button"
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700"
-        [disabled]="player.state() !== 'ready'"
-        [attr.aria-label]="player.playing() ? 'Pause' : 'Play'"
-        (click)="player.toggle()"
-      >
-        @if (player.playing()) {
-          <svg viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
-            <rect x="4" y="3" width="4" height="14" rx="1" />
-            <rect x="12" y="3" width="4" height="14" rx="1" />
-          </svg>
-        } @else {
-          <svg viewBox="0 0 20 20" class="ml-0.5 h-4 w-4" fill="currentColor" aria-hidden="true">
-            <path d="M5 3.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 5 3.5Z" />
-          </svg>
-        }
-      </button>
-      <span class="w-10 text-xs text-slate-400 tabular-nums">{{ fmt(player.time()) }}</span>
-      <input
-        type="range"
-        min="0"
-        step="0.1"
-        class="h-1.5 min-w-0 flex-1 accent-sky-400"
-        aria-label="Position"
-        [max]="duration()"
-        [value]="player.time()"
-        (input)="seek($any($event.target).value)"
-      />
-      <span class="w-10 text-xs text-slate-400 tabular-nums">{{ fmt(duration()) }}</span>
-      <button
-        type="button"
-        class="rounded-md px-2 py-1 text-xs ring-1 ring-white/10"
-        [class.bg-sky-500/20]="player.looping()"
-        [class.text-sky-300]="player.looping()"
-        [class.text-slate-400]="!player.looping()"
-        [attr.aria-pressed]="player.looping()"
-        (click)="player.looping.set(!player.looping())"
-      >
-        Loop
-      </button>
-    </div>
-    @if (player.state() === 'loading') {
-      <p class="bg-slate-900 px-3 pb-2 text-xs text-slate-500">Loading the synthesizer…</p>
-    } @else if (player.state() === 'error') {
-      <p class="bg-slate-900 px-3 pb-2 text-xs text-red-300">
-        The audio player could not start in this browser.
-      </p>
-    }
   </div>
+
+  <div class="flex items-center gap-3 bg-slate-900 px-3 py-2">
+    <button
+      type="button"
+      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-500 text-white hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700"
+      [disabled]="player.state() !== 'ready'"
+      [attr.aria-label]="player.playing() ? 'Pause' : 'Play'"
+      (click)="player.toggle()"
+    >
+      @if (player.playing()) {
+        <svg viewBox="0 0 20 20" class="h-4 w-4" fill="currentColor" aria-hidden="true">
+          <rect x="4" y="3" width="4" height="14" rx="1" />
+          <rect x="12" y="3" width="4" height="14" rx="1" />
+        </svg>
+      } @else {
+        <svg viewBox="0 0 20 20" class="ml-0.5 h-4 w-4" fill="currentColor" aria-hidden="true">
+          <path d="M5 3.5v13a1 1 0 0 0 1.5.86l11-6.5a1 1 0 0 0 0-1.72l-11-6.5A1 1 0 0 0 5 3.5Z" />
+        </svg>
+      }
+    </button>
+    <span class="w-10 text-xs text-slate-400 tabular-nums">{{ fmt(player.time()) }}</span>
+    <input
+      type="range"
+      min="0"
+      step="0.1"
+      class="h-1.5 min-w-0 flex-1 accent-sky-400"
+      aria-label="Position"
+      [max]="duration()"
+      [value]="player.time()"
+      (input)="seek($any($event.target).value)"
+    />
+    <span class="w-10 text-xs text-slate-400 tabular-nums">{{ fmt(duration()) }}</span>
+    <button
+      type="button"
+      class="rounded-md px-2 py-1 text-xs ring-1 ring-white/10"
+      [class.bg-sky-500/20]="player.looping()"
+      [class.text-sky-300]="player.looping()"
+      [class.text-slate-400]="!player.looping()"
+      [attr.aria-pressed]="player.looping()"
+      (click)="player.looping.set(!player.looping())"
+    >
+      Loop
+    </button>
+  </div>
+  @if (player.state() === 'loading') {
+    <p class="bg-slate-900 px-3 pb-2 text-xs text-slate-500">Loading the synthesizer…</p>
+  } @else if (player.state() === 'error') {
+    <p class="bg-slate-900 px-3 pb-2 text-xs text-red-300">
+      The audio player could not start in this browser.
+    </p>
+  }
 </section>

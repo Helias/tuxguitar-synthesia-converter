@@ -42,8 +42,13 @@ export interface LoadedSong {
   format: SongFormat;
   title: string;
   artist: string;
-  /** alphaTab model for notation and preview playback; null for MIDI input. */
-  score: alphaTab.model.Score | null;
+  /** alphaTab model for the notation. */
+  score: alphaTab.model.Score;
+  /**
+   * Whether preview playback uses the Score's own MIDI. False when the Score is only notation
+   * (MIDI input, quantized): the preview then plays buildMidi() on the Score's tick timeline.
+   */
+  playsScore: boolean;
   tracks: SongTrack[];
   notes: NoteEvent[];
   tempos: TempoEvent[];
