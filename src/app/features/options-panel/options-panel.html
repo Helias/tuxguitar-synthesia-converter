@@ -1,0 +1,141 @@
+<section class="rounded-xl bg-slate-900 ring-1 ring-white/5">
+  <h2
+    class="border-b border-white/5 px-4 py-3 text-sm font-semibold tracking-wide text-slate-300 uppercase"
+  >
+    Video
+  </h2>
+  @let o = store.options();
+  <div class="space-y-4 px-4 py-4 text-sm">
+    <label class="flex items-center gap-3">
+      <span class="w-28 text-slate-400">Fall speed</span>
+      <input
+        type="range"
+        min="120"
+        max="800"
+        step="20"
+        class="h-1.5 flex-1 accent-sky-400"
+        [value]="o.fallSpeed"
+        (input)="setNumber('fallSpeed', $any($event.target).value)"
+      />
+      <span class="w-16 text-right text-xs text-slate-400 tabular-nums"
+        >{{ o.fallSpeed }} px/s</span
+      >
+    </label>
+
+    <label class="flex items-center gap-3">
+      <span class="w-28 text-slate-400">Lead-in</span>
+      <input
+        type="range"
+        min="0"
+        max="10"
+        step="0.5"
+        class="h-1.5 flex-1 accent-sky-400"
+        [value]="o.leadIn"
+        (input)="setNumber('leadIn', $any($event.target).value)"
+      />
+      <span class="w-16 text-right text-xs text-slate-400 tabular-nums">{{ o.leadIn }} s</span>
+    </label>
+
+    <label class="flex items-center gap-3">
+      <span class="w-28 text-slate-400">Note names</span>
+      <select
+        class="flex-1 rounded-md border-0 bg-slate-800 py-1 text-slate-100 ring-1 ring-white/10 focus:ring-2 focus:ring-sky-400"
+        (change)="setNoteNames($any($event.target).value)"
+      >
+        <option value="it" [selected]="o.noteNames === 'it'">Italian (Do Re Mi)</option>
+        <option value="en" [selected]="o.noteNames === 'en'">English (C D E)</option>
+        <option value="none" [selected]="o.noteNames === 'none'">None</option>
+      </select>
+    </label>
+
+    <div class="flex items-center gap-3">
+      <span class="w-28 text-slate-400">Hand colours</span>
+      <label class="flex items-center gap-2">
+        <input
+          type="color"
+          class="h-7 w-9 cursor-pointer rounded border-0 bg-transparent"
+          aria-label="Right hand colour"
+          [value]="o.rightColor"
+          (input)="setColor('rightColor', $any($event.target).value)"
+        />
+        <span class="text-xs text-slate-400">right</span>
+      </label>
+      <label class="flex items-center gap-2">
+        <input
+          type="color"
+          class="h-7 w-9 cursor-pointer rounded border-0 bg-transparent"
+          aria-label="Left hand colour"
+          [value]="o.leftColor"
+          (input)="setColor('leftColor', $any($event.target).value)"
+        />
+        <span class="text-xs text-slate-400">left</span>
+      </label>
+    </div>
+
+    <label class="flex items-center gap-3">
+      <span class="w-28 text-slate-400">Resolution</span>
+      <select
+        class="flex-1 rounded-md border-0 bg-slate-800 py-1 text-slate-100 ring-1 ring-white/10 focus:ring-2 focus:ring-sky-400"
+        (change)="setPreset($any($event.target).value)"
+      >
+        <option value="1080p30" [selected]="o.preset === '1080p30'">1080p · 30 fps</option>
+        <option value="720p30" [selected]="o.preset === '720p30'">
+          720p · 30 fps (faster export)
+        </option>
+        <option value="1080p60" [selected]="o.preset === '1080p60'">1080p · 60 fps</option>
+      </select>
+    </label>
+
+    <fieldset class="space-y-2">
+      <label class="flex items-center gap-2">
+        <input
+          type="checkbox"
+          class="accent-sky-400"
+          [checked]="o.countIn"
+          (change)="setFlag('countIn', $any($event.target).checked)"
+        />
+        <span>Count-in (4 clicks before the song)</span>
+      </label>
+      <label class="flex items-center gap-2">
+        <input
+          type="checkbox"
+          class="accent-sky-400"
+          [checked]="o.fullKeyboard"
+          (change)="setFlag('fullKeyboard', $any($event.target).checked)"
+        />
+        <span>Full 88-key keyboard</span>
+      </label>
+      <label class="flex items-center gap-2">
+        <input
+          type="checkbox"
+          class="accent-sky-400"
+          [checked]="o.keepOriginalInstrument"
+          (change)="setFlag('keepOriginalInstrument', $any($event.target).checked)"
+        />
+        <span>Hand tracks keep their own instrument</span>
+      </label>
+    </fieldset>
+
+    <div class="flex items-center gap-3">
+      <span class="w-28 text-slate-400">Soundfont</span>
+      <span class="min-w-0 flex-1 truncate text-slate-300" [title]="store.soundFont()?.name ?? ''">
+        {{ store.soundFont()?.name ?? 'Built-in (Sonivox GM)' }}
+      </span>
+      @if (store.soundFont()) {
+        <button
+          type="button"
+          class="text-xs text-slate-400 underline hover:text-slate-200"
+          (click)="store.soundFont.set(null)"
+        >
+          reset
+        </button>
+      }
+      <label
+        class="cursor-pointer rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-200 ring-1 ring-white/10 hover:bg-slate-700"
+      >
+        Load .sf2
+        <input #sf type="file" accept=".sf2,.sf3" class="sr-only" (change)="pickSoundFont(sf)" />
+      </label>
+    </div>
+  </div>
+</section>

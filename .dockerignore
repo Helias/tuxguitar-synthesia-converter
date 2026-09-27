@@ -1,0 +1,8 @@
+node_modules
+dist
+.angular
+.alphatab
+.tuxguitar-lib
+.tuxguitar-legacy
+coverage
+.git

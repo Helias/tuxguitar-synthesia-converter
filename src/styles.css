@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+@import '@fontsource/noto-sans/400.css';
+@import '@fontsource/noto-sans/700.css';
+
+@theme {
+  --font-sans: 'Noto Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  color-scheme: dark;
+}
+
+/* alphaTab's cursor and highlight colours on the white score. */
+.at-cursor-bar {
+  background: rgb(66 165 245 / 0.12);
+}
+.at-cursor-beat {
+  background: rgb(66 165 245 / 0.75);
+  width: 3px;
+}
+.at-highlight * {
+  fill: #1976d2;
+  stroke: #1976d2;
+}

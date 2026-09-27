@@ -1,0 +1,60 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log
+yarn-error.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.history/*
+
+# Miscellaneous
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# alphaTab runtime files copied by tools/copy-alphatab.mjs
+/.alphatab
+/.tuxguitar-lib
+/.tuxguitar-legacy
+/test/snapshots/.*
+
+# Planning notes
+/.agents
+
+# Fixtures made from a copyrighted song (tests needing them skip when missing)
+/test/fixtures/non-ti-riconosco-piu.*
+/test/fixtures/giancane*
+/test/fixtures/features*
+/test/fixtures/legacy-v0.*
+/test/snapshots/frame-1080p.png

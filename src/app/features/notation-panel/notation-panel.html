@@ -1,0 +1,37 @@
+<section class="rounded-xl bg-slate-900 ring-1 ring-white/5">
+  <button
+    type="button"
+    class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold tracking-wide text-slate-300 uppercase"
+    [attr.aria-expanded]="open()"
+    aria-controls="notation-body"
+    (click)="open.set(!open())"
+  >
+    Score
+    <svg
+      viewBox="0 0 20 20"
+      class="h-4 w-4 transition-transform"
+      [class.rotate-180]="open()"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        d="M5.2 7.2a1 1 0 0 1 1.4 0L10 10.6l3.4-3.4a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0L5.2 8.6a1 1 0 0 1 0-1.4Z"
+      />
+    </svg>
+  </button>
+  <div
+    id="notation-body"
+    #scroller
+    class="overflow-auto rounded-b-xl bg-white transition-[max-height]"
+    [class.max-h-[55vh]]="open()"
+    [class.max-h-0]="!open()"
+    [attr.aria-hidden]="!open()"
+  >
+    @if (!player.hasNotation()) {
+      <p class="px-4 py-6 text-center text-sm text-slate-600">
+        MIDI files have no notation to show.
+      </p>
+    }
+    <div #alphaTab [class.hidden]="!player.hasNotation()" class="text-slate-900"></div>
+  </div>
+</section>
