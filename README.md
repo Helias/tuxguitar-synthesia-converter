@@ -1,6 +1,8 @@
 # TuxGuitar → Piano tutorial
 
-![Für Elise open in the app: falling-notes preview, pentagram, track, video and export settings](SynthesiaConverter.png)
+## [Try it!](https://stefanoborzi.dev/tuxguitar-synthesia-converter/)
+
+[![Für Elise open in the app: falling-notes preview, pentagram, track, video and export settings](SynthesiaConverter.png)](https://stefanoborzi.dev/tuxguitar-synthesia-converter/)
 
 A static web app that turns a tab, score or MIDI file into a Synthesia-style falling-notes piano
 video. Parsing, synthesis, drawing and encoding all run in the browser; nothing is uploaded.
