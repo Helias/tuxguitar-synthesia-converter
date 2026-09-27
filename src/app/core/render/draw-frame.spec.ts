@@ -22,7 +22,7 @@ const scene = available
         splitKey: 60,
         volume: 1,
       })),
-      DEFAULT_OPTIONS,
+      { ...DEFAULT_OPTIONS, countIn: true },
     )
   : (null as never);
 

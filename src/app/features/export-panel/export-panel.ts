@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { PRESETS } from '../../core/scene/options';
 import { ExportService } from '../../state/export.service';
-import { PlayerService } from '../../state/player.service';
 import { SongStore } from '../../state/song-store';
 
 @Component({
@@ -23,7 +22,6 @@ export class ExportPanel {
   protected readonly store = inject(SongStore);
   protected readonly exporter = inject(ExportService);
   protected readonly open = signal(true);
-  private readonly player = inject(PlayerService);
 
   protected readonly formats = [
     { id: 'mp4', label: 'MP4' },
@@ -60,7 +58,6 @@ export class ExportPanel {
   }
 
   protected start(): void {
-    this.player.pause();
     void this.exporter.exportVideo();
   }
 }

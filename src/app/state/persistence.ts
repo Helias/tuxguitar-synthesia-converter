@@ -1,6 +1,7 @@
 import { DEFAULT_OPTIONS, TrackSettings, VideoOptions } from '../core/scene/options';
 
-const OPTIONS_KEY = 'tsc.options.v1';
+/** Holds only the options that differ from DEFAULT_OPTIONS, so new defaults reach everyone. */
+const OPTIONS_KEY = 'tsc.options.v2';
 const FILE_PREFIX = 'tsc.file.v1.';
 
 /** Global video options; storage may be unavailable (private mode, blocked site data). */
@@ -17,7 +18,12 @@ export function loadOptions(): VideoOptions {
 
 export function saveOptions(options: VideoOptions): void {
   try {
-    localStorage.setItem(OPTIONS_KEY, JSON.stringify(options));
+    const changed = Object.fromEntries(
+      Object.entries(options).filter(
+        ([key, value]) => DEFAULT_OPTIONS[key as keyof VideoOptions] !== value,
+      ),
+    );
+    localStorage.setItem(OPTIONS_KEY, JSON.stringify(changed));
   } catch {
     // Not persisted; the app works without storage.
   }

@@ -35,7 +35,7 @@ export const DEFAULT_OPTIONS: VideoOptions = {
   rightColor: '#42a5f5',
   leftColor: '#78d65c',
   leadIn: 4,
-  countIn: true,
+  countIn: false,
   fullKeyboard: false,
   keepOriginalInstrument: false,
   preset: '1080p30',

@@ -47,6 +47,8 @@ export class PlayerService {
   private clicks: AudioBufferSourceNode[] = [];
   private resumeTimer: ReturnType<typeof setTimeout> | undefined;
   private resumePending = false;
+  /** Playback was running when a settings change paused it, so it resumes afterwards. */
+  private pausedForSettings = false;
 
   constructor() {
     effect(() => {
@@ -68,8 +70,8 @@ export class PlayerService {
       if (!this.apiReady()) return;
       untracked(() => this.renderNotation(roles));
     });
-    // Any settings change pauses playback and resumes it from the same time; a new song only
-    // resets it.
+    // A settings change during playback pauses it and resumes from the same time; a paused or
+    // stopped player stays as it is. A new song only resets it.
     let settingsSong: LoadedSong | null = null;
     effect(() => {
       const song = this.store.song();
@@ -140,6 +142,7 @@ export class PlayerService {
   }
 
   async play(): Promise<void> {
+    this.cancelResume();
     const scene = this.store.scene();
     if (!scene || !this.api || this.state() !== 'ready') return;
     if (this.anchorTime >= scene.duration - 0.05) this.anchorTime = 0;
@@ -156,6 +159,11 @@ export class PlayerService {
   }
 
   pause(): void {
+    this.cancelResume();
+    this.halt();
+  }
+
+  private halt(): void {
     this.anchorTime = this.now();
     this.playing.set(false);
     this.stopSong();
@@ -195,7 +203,11 @@ export class PlayerService {
   }
 
   private scheduleResume(): void {
-    if (this.playing()) this.pause();
+    if (this.playing()) {
+      this.halt();
+      this.pausedForSettings = true;
+    }
+    if (!this.pausedForSettings) return;
     clearTimeout(this.resumeTimer);
     this.resumeTimer = setTimeout(() => {
       this.resumePending = true;
@@ -204,8 +216,13 @@ export class PlayerService {
   }
 
   private resume(): void {
-    this.resumePending = false;
     if (!this.playing()) void this.play();
+  }
+
+  private cancelResume(): void {
+    clearTimeout(this.resumeTimer);
+    this.resumePending = false;
+    this.pausedForSettings = false;
   }
 
   private loop(): void {
@@ -267,9 +284,7 @@ export class PlayerService {
   }
 
   private loadSong(song: LoadedSong | null): void {
-    clearTimeout(this.resumeTimer);
-    this.resumePending = false;
-    if (this.playing()) this.pause();
+    this.pause();
     this.loadedSong = song;
     this.renderedTracks = '';
     this.anchorTime = 0;
